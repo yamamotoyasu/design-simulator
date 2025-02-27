@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POD Tシャツデザインシミュレータ</title>
+    <!-- Fabric.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
+    <style>
+        canvas {
+            border: 1px solid #000;
+        }
+        .controls {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>POD Tシャツデザインシミュレータ</h1>
+    <canvas id="tshirtCanvas" width="500" height="600"></canvas>
+    <div class="controls">
+        <input type="file" id="uploadImage" accept="image/*">
+        <input type="text" id="addText" placeholder="テキストを入力">
+        <button id="addTextButton">テキスト追加</button>
+        <button id="saveDesign">デザインを保存</button>
+        <button id="generatePrintData">デザインを確認</button>
+    </div>
+    <div id="result" style="margin-top: 20px;">
+        <h3>保存結果:</h3>
+        <img id="savedImage" src="" alt="保存された画像" style="max-width: 100%;">
+        <p id="printDataInfo"></p>
+    </div>
+    <script>
+        const canvas = new fabric.Canvas('tshirtCanvas');
+        // Tシャツのベース画像
+        fabric.Image.fromURL('/static/tshirt_base.png', function (img) {
+            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+        });
+
+        // 画像アップロード
+        document.getElementById('uploadImage').addEventListener('change', function (e) {
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                fabric.Image.fromURL(event.target.result, function (img) {
+                    img.scale(0.5); // 画像の初期サイズを調整
+                    canvas.add(img);
+                });
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        // テキスト追加
+        document.getElementById('addTextButton').addEventListener('click', function () {
+            const text = document.getElementById('addText').value;
+            if (text) {
+                const textObject = new fabric.Text(text, {
+                    left: 100,
+                    top: 100,
+                    fontSize: 24,
+                    fill: 'black',
+                });
+                canvas.add(textObject);
+            }
+        });
+
+        // デザインを保存
+        document.getElementById('saveDesign').addEventListener('click', function () {
+            const objects = canvas.toJSON().objects;
+            fetch('/save_design', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ objects: objects }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result) {
+                    document.getElementById('savedImage').src = data.result;
+                } else {
+                    alert('デザイン保存中にエラーが発生しました');
+                }
+            })
+            .catch(error => console.error('デザイン保存中のエラー:', error));
+        });
+
+        // デザインを確認（印刷データ生成）
+        document.getElementById('generatePrintData').addEventListener('click', function () {
+            const objects = canvas.toJSON().objects;
+            fetch('/generate_print_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ objects: objects }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.png && data.svg) {
+                    document.getElementById('printDataInfo').innerHTML = `
+                        <p>PNG: <a href="${data.png}" target="_blank">ダウンロード</a></p>
+                        <p>SVG: <a href="${data.svg}" target="_blank">ダウンロード</a></p>
+                    `;
+                } else {
+                    alert('印刷データ生成中にエラーが発生しました');
+                }
+            })
+            .catch(error => console.error('印刷データ生成中のエラー:', error));
+        });
+    </script>
+</body>
+</html>
