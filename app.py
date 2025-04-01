@@ -22,7 +22,8 @@ def index():
 # デザイン確認ページ
 @app.route('/confirm')
 def confirm():
-    return render_template('confirm.html')
+    image_url = request.args.get("image", "")
+    return render_template('confirm.html', image_url=image_url)
 
 # デザインを保存するAPI
 @app.route('/save_design', methods=['POST'])
@@ -74,4 +75,4 @@ def complete():
     return render_template('complete.html', order_id=order_id)
 
 if __name__ == '__main__':
-    app.run(debug=True) # 
+    app.run(debug=True)

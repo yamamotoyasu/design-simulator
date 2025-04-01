@@ -8,25 +8,30 @@
 </head>
 <body>
     <h1>Tシャツデザインシミュレータ</h1>
-    <canvas id="tshirtCanvas" width="600" height="600" style="border:1px solid #000;"></canvas>
+    <canvas id="tshirtCanvas" width="500" height="450" style="border:1px solid #000;"></canvas>
     <br>
     <input type="file" id="uploadImage" accept="image/*">
     <input type="text" id="addText" placeholder="テキストを入力">
     <button id="addTextButton">文字を追加</button>
     <button onclick="confirmDesign()">デザインを決定</button>
-    <img id="savedImage" style="display:none; width:300px;">
-    
+    <button onclick="resetCanvas()">最初からデザイン</button>  <!-- 新しいボタン -->
+
     <script>
         const canvas = new fabric.Canvas('tshirtCanvas');
 
-        fabric.Image.fromURL('/static/tshirt_base.png', function(img) {
-            img.set({
-                left: (canvas.width - img.width) / 2,  // **中央配置**
-                top: (canvas.height - img.height) / 2, // **中央配置**
-                selectable: false // **背景画像を選択できないように**
+        function setTshirtBackground() {
+            fabric.Image.fromURL('/static/tshirt_base.png', function(img) {
+                img.scaleToWidth(canvas.width); 
+                img.set({ 
+                    left: (canvas.width - img.width * img.scaleX) / 2, 
+                    top: (canvas.height - img.height * img.scaleY) / 2,
+                    selectable: false 
+                });
+                canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
             });
-            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-        });
+        }
+
+        setTshirtBackground(); // 初期背景設定
 
         document.getElementById('uploadImage').addEventListener('change', function(event) {
             let reader = new FileReader();
@@ -44,7 +49,7 @@
             if (textValue.trim() !== "") {
                 let text = new fabric.Text(textValue, { left: 150, top: 150, fontSize: 30 });
                 canvas.add(text);
-                document.getElementById('addText').value = ""; // **入力フィールドをクリア**
+                document.getElementById('addText').value = "";
             }
         });
 
@@ -68,7 +73,12 @@
             });
         }
 
-        // **戻るときにレイアウトを復元**
+        function resetCanvas() {
+            sessionStorage.removeItem("savedCanvas"); // 保存データ削除
+            canvas.clear(); // キャンバスをクリア
+            setTshirtBackground(); // 背景を再設定
+        }
+
         window.onload = function() {
             let savedCanvas = sessionStorage.getItem("savedCanvas");
             if (savedCanvas) {
