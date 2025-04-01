@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>デザイン確認</title>
+</head>
+<body>
+    <h1>デザイン確認</h1>
+    <img id="confirmedImage" src="" alt="デザイン画像">
+    <br>
+    <button onclick="goBack()">戻る</button>
+
+    <script>
+        window.onload = function() {
+            const params = new URLSearchParams(window.location.search);
+            const imageUrl = params.get("image");
+            if (imageUrl) {
+                document.getElementById('confirmedImage').src = imageUrl;
+            } else {
+                document.getElementById('confirmedImage').alt = "画像が見つかりませんでした";
+            }
+        };
+
+        function goBack() {
+            window.location.href = "/";
+        }
+    </script>
+</body>
+</html>

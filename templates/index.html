@@ -4,109 +4,106 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>POD Tシャツデザインシミュレータ</title>
-    <!-- Fabric.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
     <style>
-        canvas {
+        #tshirtCanvas {
+            width: 500px;
+            height: 450px;
             border: 1px solid #000;
-        }
-        .controls {
-            margin-top: 10px;
         }
     </style>
 </head>
 <body>
     <h1>POD Tシャツデザインシミュレータ</h1>
-    <canvas id="tshirtCanvas" width="500" height="600"></canvas>
-    <div class="controls">
-        <input type="file" id="uploadImage" accept="image/*">
-        <input type="text" id="addText" placeholder="テキストを入力">
-        <button id="addTextButton">テキスト追加</button>
-        <button id="saveDesign">デザインを保存</button>
-        <button id="generatePrintData">デザインを確認</button>
-    </div>
-    <div id="result" style="margin-top: 20px;">
-        <h3>保存結果:</h3>
-        <img id="savedImage" src="" alt="保存された画像" style="max-width: 100%;">
-        <p id="printDataInfo"></p>
-    </div>
+    <canvas id="tshirtCanvas"></canvas>
+    <br>
+    <input type="file" id="uploadImage" accept="image/*">
+    <input type="text" id="addText" placeholder="テキストを入力">
+    <button onclick="addTextToCanvas()">文字を追加</button>
+    <button onclick="confirmDesign()">デザインを決定</button>
+
     <script>
-        const canvas = new fabric.Canvas('tshirtCanvas');
-        // Tシャツのベース画像
-        fabric.Image.fromURL('/static/tshirt_base.png', function (img) {
-            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+        const canvas = new fabric.Canvas('tshirtCanvas', {
+            width: 500,
+            height: 450
         });
 
-        // 画像アップロード
-        document.getElementById('uploadImage').addEventListener('change', function (e) {
-            const reader = new FileReader();
-            reader.onload = function (event) {
-                fabric.Image.fromURL(event.target.result, function (img) {
-                    img.scale(0.5); // 画像の初期サイズを調整
+        // 🔹 背景画像のロード
+        function loadBackgroundImage(callback) {
+            fabric.Image.fromURL('/static/tshirt_base.png', function(img) {
+                img.scaleToHeight(450);
+                img.scaleToWidth(500);
+                canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+
+                if (callback) callback();
+            });
+        }
+
+        // 🔹 保存データの復元処理
+        function restoreCanvas() {
+            let savedCanvas = sessionStorage.getItem("savedCanvas");
+            if (savedCanvas) {
+                canvas.loadFromJSON(savedCanvas, function() {
+                    canvas.renderAll();
+                });
+            }
+        }
+
+        // 🔹 画像をアップロード
+        document.getElementById('uploadImage').addEventListener('change', function(event) {
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                fabric.Image.fromURL(e.target.result, function(img) {
+                    img.set({ left: 100, top: 100, scaleX: 0.5, scaleY: 0.5 });
                     canvas.add(img);
                 });
             };
-            reader.readAsDataURL(e.target.files[0]);
+            reader.readAsDataURL(event.target.files[0]);
         });
 
-        // テキスト追加
-        document.getElementById('addTextButton').addEventListener('click', function () {
-            const text = document.getElementById('addText').value;
-            if (text) {
-                const textObject = new fabric.Text(text, {
-                    left: 100,
-                    top: 100,
-                    fontSize: 24,
-                    fill: 'black',
-                });
-                canvas.add(textObject);
-            }
-        });
+        // 🔹 テキストを追加
+        function addTextToCanvas() {
+            let inputField = document.getElementById('addText');
+            let text = new fabric.Text(inputField.value, { left: 150, top: 150, fontSize: 30 });
+            canvas.add(text);
+            inputField.value = "";
+        }
 
-        // デザインを保存
-        document.getElementById('saveDesign').addEventListener('click', function () {
-            const objects = canvas.toJSON().objects;
+        // 🔹 デザインを決定 → 次のページへ
+        function confirmDesign() {
+            let jsonData = JSON.stringify(canvas.toJSON());
+            sessionStorage.setItem("savedCanvas", jsonData); // 🔹 デザインデータを保存
+
+            let imageData = canvas.toDataURL('image/png');
             fetch('/save_design', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ objects: objects }),
+                body: JSON.stringify({ image: imageData }),
+                headers: { 'Content-Type': 'application/json' }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.result) {
-                    document.getElementById('savedImage').src = data.result;
+                    window.location.href = "/confirm?image=" + encodeURIComponent(data.result);
                 } else {
-                    alert('デザイン保存中にエラーが発生しました');
+                    alert("エラー: " + data.error);
                 }
-            })
-            .catch(error => console.error('デザイン保存中のエラー:', error));
+            });
+        }
+
+        // 🔹 ページが表示されたときにデータを復元
+        window.addEventListener("pageshow", function(event) {
+            if (event.persisted) {  // 🔥 キャッシュされたページなら復元
+                restoreCanvas();
+            } else { // 🔹 通常の読み込み時
+                loadBackgroundImage(restoreCanvas);
+            }
         });
 
-        // デザインを確認（印刷データ生成）
-        document.getElementById('generatePrintData').addEventListener('click', function () {
-            const objects = canvas.toJSON().objects;
-            fetch('/generate_print_data', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ objects: objects }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.png && data.svg) {
-                    document.getElementById('printDataInfo').innerHTML = `
-                        <p>PNG: <a href="${data.png}" target="_blank">ダウンロード</a></p>
-                        <p>SVG: <a href="${data.svg}" target="_blank">ダウンロード</a></p>
-                    `;
-                } else {
-                    alert('印刷データ生成中にエラーが発生しました');
-                }
-            })
-            .catch(error => console.error('印刷データ生成中のエラー:', error));
+        // 🔹 更新時はデフォルトに戻す
+        window.addEventListener('beforeunload', function() {
+            sessionStorage.removeItem("savedCanvas");
         });
+
     </script>
 </body>
 </html>
