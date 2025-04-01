@@ -3,77 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POD Tシャツデザインシミュレータ</title>
+    <title>Tシャツデザインシミュレータ</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
-    <style>
-        #tshirtCanvas {
-            width: 600px;
-            height: 700px;
-            border: 1px solid #000;
-        }
-    </style>
 </head>
 <body>
-    <h1>POD Tシャツデザインシミュレータ</h1>
-    <canvas id="tshirtCanvas"></canvas>
+    <h1>Tシャツデザインシミュレータ</h1>
+    <canvas id="tshirtCanvas" width="500" height="450" style="border:1px solid #000;"></canvas>
     <br>
     <input type="file" id="uploadImage" accept="image/*">
     <input type="text" id="addText" placeholder="テキストを入力">
-    <button onclick="addTextToCanvas()">文字を追加</button>
+    <button id="addTextButton">文字を追加</button>
     <button onclick="confirmDesign()">デザインを決定</button>
-
+    <img id="savedImage" style="display:none; width:300px;">
+    
     <script>
-        const canvas = new fabric.Canvas('tshirtCanvas', {
-            width: 500,
-            height: 450
+        const canvas = new fabric.Canvas('tshirtCanvas');
+
+        fabric.Image.fromURL('/static/tshirt_base.png', function(img) {
+            img.set({
+                left: (canvas.width - img.width) / 2,  // **中央配置**
+                top: (canvas.height - img.height) / 2, // **中央配置**
+                selectable: false // **背景画像を選択できないように**
+            });
+            canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
         });
 
-        // 🔹 背景画像のロード
-        function loadBackgroundImage(callback) {
-            fabric.Image.fromURL('/static/tshirt_base.png', function(img) {
-                img.scaleToHeight(450);
-                img.scaleToWidth(500);
-                canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-
-                if (callback) callback();
-            });
-        }
-
-        // 🔹 保存データの復元処理
-        function restoreCanvas() {
-            let savedCanvas = sessionStorage.getItem("savedCanvas");
-            if (savedCanvas) {
-                canvas.loadFromJSON(savedCanvas, function() {
-                    canvas.renderAll();
-                });
-            }
-        }
-
-        // 🔹 画像をアップロード
         document.getElementById('uploadImage').addEventListener('change', function(event) {
             let reader = new FileReader();
             reader.onload = function(e) {
                 fabric.Image.fromURL(e.target.result, function(img) {
-                    img.set({ left: 100, top: 100, scaleX: 0.5, scaleY: 0.5 });
+                    img.set({ left: 100, top: 100, scaleX: 1.0, scaleY: 1.0 });
                     canvas.add(img);
                 });
             };
             reader.readAsDataURL(event.target.files[0]);
         });
 
-        // 🔹 テキストを追加
-        function addTextToCanvas() {
-            let inputField = document.getElementById('addText');
-            let text = new fabric.Text(inputField.value, { left: 150, top: 150, fontSize: 30 });
-            canvas.add(text);
-            inputField.value = "";
-        }
+        document.getElementById('addTextButton').addEventListener('click', function() {
+            let textValue = document.getElementById('addText').value;
+            if (textValue.trim() !== "") {
+                let text = new fabric.Text(textValue, { left: 150, top: 150, fontSize: 30 });
+                canvas.add(text);
+                document.getElementById('addText').value = ""; // **入力フィールドをクリア**
+            }
+        });
 
-        // 🔹 デザインを決定 → 次のページへ
         function confirmDesign() {
             let jsonData = JSON.stringify(canvas.toJSON());
-            sessionStorage.setItem("savedCanvas", jsonData); // 🔹 デザインデータを保存
-
+            sessionStorage.setItem("savedCanvas", jsonData);
+            
             let imageData = canvas.toDataURL('image/png');
             fetch('/save_design', {
                 method: 'POST',
@@ -90,20 +68,13 @@
             });
         }
 
-        // 🔹 ページが表示されたときにデータを復元
-        window.addEventListener("pageshow", function(event) {
-            if (event.persisted) {  // 🔥 キャッシュされたページなら復元
-                restoreCanvas();
-            } else { // 🔹 通常の読み込み時
-                loadBackgroundImage(restoreCanvas);
+        // **戻るときにレイアウトを復元**
+        window.onload = function() {
+            let savedCanvas = sessionStorage.getItem("savedCanvas");
+            if (savedCanvas) {
+                canvas.loadFromJSON(savedCanvas, canvas.renderAll.bind(canvas));
             }
-        });
-
-        // 🔹 更新時はデフォルトに戻す
-        window.addEventListener('beforeunload', function() {
-            sessionStorage.removeItem("savedCanvas");
-        });
-
+        };
     </script>
 </body>
 </html>
