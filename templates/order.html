@@ -1,0 +1,30 @@
+<!-- order.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注文情報入力</title>
+</head>
+<body>
+    <h1>注文情報入力</h1>
+    <form action="/review" method="POST">
+        <label>支払い方法:</label><br>
+        <input type="radio" name="payment" value="クレジットカード" required> クレジットカード<br>
+        <input type="radio" name="payment" value="代金引換"> 代金引換<br>
+        <input type="radio" name="payment" value="銀行振込"> 銀行振込<br>
+        <br>
+        
+        <label>氏名:</label><br>
+        <input type="text" name="name" required><br><br>
+        
+        <label>住所:</label><br>
+        <input type="text" name="address" required><br><br>
+        
+        <label>電話番号:</label><br>
+        <input type="text" name="phone" required><br><br>
+        
+        <button type="submit">注文を確認</button>
+    </form>
+</body>
+</html>

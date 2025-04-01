@@ -1,0 +1,20 @@
+<!-- review.html -->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注文内容確認</title>
+</head>
+<body>
+    <h1>注文内容確認</h1>
+    <p><strong>支払い方法:</strong> {{ payment }}</p>
+    <p><strong>氏名:</strong> {{ name }}</p>
+    <p><strong>住所:</strong> {{ address }}</p>
+    <p><strong>電話番号:</strong> {{ phone }}</p>
+
+    <form action="/complete" method="POST">
+        <button type="submit">注文を確定</button>
+    </form>
+</body>
+</html>

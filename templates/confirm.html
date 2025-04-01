@@ -1,3 +1,4 @@
+<!-- confirm.html -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -7,24 +8,9 @@
 </head>
 <body>
     <h1>デザイン確認</h1>
-    <img id="confirmedImage" src="" alt="デザイン画像">
+    <img src="{{ image_url }}" alt="デザイン画像" width="300">
     <br>
-    <button onclick="goBack()">戻る</button>
-
-    <script>
-        window.onload = function() {
-            const params = new URLSearchParams(window.location.search);
-            const imageUrl = params.get("image");
-            if (imageUrl) {
-                document.getElementById('confirmedImage').src = imageUrl;
-            } else {
-                document.getElementById('confirmedImage').alt = "画像が見つかりませんでした";
-            }
-        };
-
-        function goBack() {
-            window.location.href = "/";
-        }
-    </script>
+    <button onclick="window.location.href='/'">戻る</button>
+    <button onclick="window.location.href='/order'">注文する</button>
 </body>
 </html>
