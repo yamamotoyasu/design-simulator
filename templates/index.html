@@ -5,23 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tシャツデザインシミュレータ</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.4/fabric.min.js"></script>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 1px solid #000;
+            max-width: 100%;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        input, button {
+            font-size: 16px;
+            padding: 8px;
+            width: 90%;
+            max-width: 400px;
+        }
+    </style>
 </head>
 <body>
     <h1>Tシャツデザインシミュレータ</h1>
-    <canvas id="tshirtCanvas" width="500" height="450" style="border:1px solid #000;"></canvas>
-    <br>
-    <input type="file" id="uploadImage" accept="image/*">
-    <input type="text" id="addText" placeholder="テキストを入力">
-    <button id="addTextButton">文字を追加</button>
-    <button onclick="confirmDesign()">デザインを決定</button>
-    <button onclick="resetCanvas()">最初からデザイン</button>  <!-- 新しいボタン -->
+    <canvas id="tshirtCanvas"></canvas>
+
+    <div class="controls">
+        <input type="file" id="uploadImage" accept="image/*">
+        <input type="text" id="addText" placeholder="テキストを入力">
+        <button id="addTextButton">文字を追加</button>
+        <button onclick="confirmDesign()">デザインを決定</button>
+        <button onclick="resetCanvas()">最初からデザイン</button>
+    </div>
 
     <script>
         const canvas = new fabric.Canvas('tshirtCanvas');
 
+        function adjustCanvasSize() {
+            let width = window.innerWidth;
+            let newSize = width < 600 ? 300 : width < 900 ? 400 : 600;  // スマホ: 300px, タブレット: 400px, PC: 600px
+            canvas.setWidth(newSize);
+            canvas.setHeight(newSize);
+        }
+
         function setTshirtBackground() {
             fabric.Image.fromURL('/static/tshirt_base.png', function(img) {
-                img.scaleToWidth(canvas.width); 
+                img.scaleToWidth(canvas.width);
                 img.set({ 
                     left: (canvas.width - img.width * img.scaleX) / 2, 
                     top: (canvas.height - img.height * img.scaleY) / 2,
@@ -31,7 +63,13 @@
             });
         }
 
-        setTshirtBackground(); // 初期背景設定
+        adjustCanvasSize();  // 初回のキャンバスサイズ設定
+        setTshirtBackground();  // 背景を設定
+
+        window.addEventListener('resize', () => {
+            adjustCanvasSize();  // 画面サイズが変わったらキャンバスをリサイズ
+            setTshirtBackground();  // 背景画像も再調整
+        });
 
         document.getElementById('uploadImage').addEventListener('change', function(event) {
             let reader = new FileReader();
@@ -74,9 +112,9 @@
         }
 
         function resetCanvas() {
-            sessionStorage.removeItem("savedCanvas"); // 保存データ削除
-            canvas.clear(); // キャンバスをクリア
-            setTshirtBackground(); // 背景を再設定
+            sessionStorage.removeItem("savedCanvas");
+            canvas.clear();
+            setTshirtBackground();
         }
 
         window.onload = function() {
