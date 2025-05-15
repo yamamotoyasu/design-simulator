@@ -1,60 +1,67 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from PIL import Image
-import os
-import datetime
-import uuid
-import base64
 from io import BytesIO
+import base64
+import os
+import uuid
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm
 
 app = Flask(__name__)
 
 UPLOAD_FOLDER = 'uploads'
-RESULT_FOLDER = 'results'
-
+PDF_FOLDER = 'pdfs'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(RESULT_FOLDER, exist_ok=True)
+os.makedirs(PDF_FOLDER, exist_ok=True)
 
-# トップページ
+#トップページ
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# デザイン確認ページ
-@app.route('/confirm')
-def confirm():
-    image_url = request.args.get("image", "")
-    return render_template('confirm.html', image_url=image_url)
-
-# デザインを保存するAPI
 @app.route('/save_design', methods=['POST'])
 def save_design():
     try:
         data = request.json
-        if "image" not in data:
-            return jsonify({"error": "画像データがありません"}), 400
+        if 'image' not in data:
+            return jsonify({'error': 'No image data provided'}), 400
 
-        # Base64で送られてきた画像をデコード
-        image_data = data["image"].split(",")[1]
-        image_bytes = base64.b64decode(image_data)
-        image = Image.open(BytesIO(image_bytes))
+        # 画像データ（Base64）をデコード
+        base64_data = data['image'].split(',')[1]
+        image_data = base64.b64decode(base64_data)
+        image = Image.open(BytesIO(image_data)).convert('RGB')
 
-        # 画像を保存
-        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        filename = f"{uuid.uuid4().hex}_{timestamp}.png"
-        result_path = os.path.join(RESULT_FOLDER, filename)
-        image.save(result_path)
+        # ファイル名生成
+        unique_id = uuid.uuid4().hex
+        image_path = os.path.join(UPLOAD_FOLDER, f'{unique_id}.png')
+        pdf_path = os.path.join(PDF_FOLDER, f'{unique_id}.pdf')
 
-        return jsonify({"result": f"/results/{filename}"})
+        # 一時画像として保存
+        image.save(image_path)
+
+        # PDFとして保存（実寸サイズ：1500mm x 450mm）
+        width_mm = 450
+        height_mm = 1500
+        width_pt = width_mm * mm
+        height_pt = height_mm * mm
+
+        c = canvas.Canvas(pdf_path, pagesize=(width_pt, height_pt))
+        c.drawInlineImage(image_path, 0, 0, width=width_pt, height=height_pt)
+        c.showPage()
+        c.save()
+
+        return jsonify({'message': 'PDF saved successfully', 'pdf_url': f'/pdfs/{unique_id}.pdf'})
+
     except Exception as e:
-        return jsonify({"error": f"デザイン保存中のエラー: {str(e)}"}), 500
+        return jsonify({'error': str(e)}), 500
 
-# 保存された画像を取得するAPI
-@app.route('/results/<filename>')
-def get_result_image(filename):
-    return send_from_directory(RESULT_FOLDER, filename)
+@app.route('/pdfs/<filename>')
+def get_pdf(filename):
+    return send_from_directory(PDF_FOLDER, filename)
+
 
 # 注文情報入力ページ
-@app.route('/order', methods=['GET'])
+@app.route('/order')
 def order():
     return render_template('order.html')
 
@@ -62,17 +69,22 @@ def order():
 @app.route('/review', methods=['POST'])
 def review():
     payment = request.form['payment']
+    dantainame = request.form['dantainame']
     name = request.form['name']
+    addressno = request.form['addressno']
     address = request.form['address']
     phone = request.form['phone']
+    email = request.form['email']
     
-    return render_template('review.html', payment=payment, name=name, address=address, phone=phone)
+    return render_template('review.html', payment=payment, dantainame=dantainame, name=name, addressno=addressno, address=address, phone=phone, email=email)
 
 # 注文完了ページ（注文番号生成）
 @app.route('/complete', methods=['POST'])
 def complete():
     order_id = str(uuid.uuid4())[:8]  # ランダムな注文番号を生成
     return render_template('complete.html', order_id=order_id)
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)

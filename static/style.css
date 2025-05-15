@@ -1,0 +1,62 @@
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+#canvasContainer {
+  display: inline-block;
+  border: 2px solid #ccc;
+  background-color: #fff;
+}
+
+button, select, input[type="color"], input[type="text"] {
+  margin: 0.25rem;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border-radius: 40px;
+  border: 1px solid #ccc;
+}
+
+button:hover {
+  cursor: pointer;
+  background-color: #e0e0e0;
+}
+
+#toolbar {
+  margin-top: 0.5rem;
+}
+
+main {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: flex-start;
+  margin-top: 20px;
+}
+
+.toolbar {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+
+
+#colorPicker {
+  width: 120px;       /* 横幅を広くする */
+  height: 30px;      /* 高さも大きくする */
+  padding: 0;        /* 余白をリセット */
+  border: none;      /* 必要なら枠線を消す*/
+  cursor: pointer;
+  border-radius: 8px; /* 少し丸みを付ける */
+}
